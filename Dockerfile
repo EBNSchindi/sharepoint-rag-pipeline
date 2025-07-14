@@ -1,5 +1,5 @@
 # Multi-stage build for SharePoint RAG Pipeline
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -44,7 +44,7 @@ RUN python -m spacy download en_core_web_sm && \
     python -m spacy download de_core_news_sm
 
 # Production stage
-FROM base as production
+FROM base AS production
 
 # Copy application code
 COPY --chown=appuser:appuser . .
@@ -70,7 +70,7 @@ EXPOSE 8000
 CMD ["python", "run_pipeline.py", "--help"]
 
 # Development stage
-FROM base as development
+FROM base AS development
 
 # Install development dependencies
 RUN pip install \

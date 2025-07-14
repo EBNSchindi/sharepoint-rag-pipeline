@@ -18,7 +18,7 @@ make process INPUT=/path/to/your/pdfs
 
 **Das war's!** 🎉 Die Pipeline läuft und verarbeitet Ihre Dokumente.
 
-**✅ Erfolgreich getestet:** Business Intelligence PDF (10 Seiten, 25.389 Zeichen → 4 kontextuelle Chunks)
+**✅ Production-Ready:** Business Intelligence PDF (10 Seiten, 25.049 Zeichen → 3 kontextuelle Chunks, ChromaDB + ONNX ML)
 
 ---
 
