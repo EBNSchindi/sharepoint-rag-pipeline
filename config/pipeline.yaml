@@ -1,0 +1,122 @@
+version: "2.0.0"
+name: "Contextual RAG Pipeline for SharePoint"
+
+# Directories
+state_directory: "./data/state"
+report_directory: "./data/reports"
+metadata_db_path: "./data/metadata.db"
+
+# Processing
+processing:
+  batch_size: 10
+  max_workers: 4
+  timeout_per_document: 300  # seconds
+
+# Extraction
+extraction:
+  pdf:
+    primary_method: "pdfplumber"  # pdfplumber, pymupdf, pypdf2
+    fallback_method: "pymupdf"
+    ocr_enabled: true
+    ocr_language: "eng"
+
+# Chunking
+chunking:
+  strategy: "contextual"  # contextual, semantic, fixed
+  chunk_size: 1000  # tokens
+  chunk_overlap: 200
+  min_chunk_size: 100
+  max_chunk_size: 2000
+  
+  contextual_chunking:
+    preserve_structure: true
+    respect_boundaries: true
+    include_headers: true
+
+# Context Enrichment
+context_enrichment:
+  nlp_model: "en_core_web_sm"
+  classification_model: "facebook/bart-large-mnli"
+  extract_concepts: true
+  extract_prerequisites: true
+  identify_references: true
+  max_key_concepts: 10
+  max_prerequisites: 5
+
+# Vector Store
+vector_store:
+  type: "chromadb"
+  persist_directory: "./data/vectors"
+  collection_name: "sharepoint_contextual_kb"
+  embedding_model: "sentence-transformers/all-mpnet-base-v2"
+  
+  # Metadaten für Contextual RAG
+  metadata_fields:
+    - "document_id"
+    - "document_title"
+    - "document_type"
+    - "chunk_type"
+    - "semantic_role"
+    - "chapter"
+    - "section"
+    - "key_concepts"
+    - "extraction_confidence"
+    - "page_numbers"
+    - "position"
+    - "processed_at"
+
+# Quality Validation
+quality_validation:
+  min_quality_score: 70
+  check_completeness: true
+  check_context_consistency: true
+  validate_references: true
+  quality_checks:
+    - "content_completeness"
+    - "content_coherence"
+    - "information_density"
+    - "context_consistency"
+    - "chunk_size"
+    - "language_quality"
+    - "structural_integrity"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/contextual_pipeline.log"
+  rotate: true
+  max_size_mb: 100
+  backup_count: 5
+
+# AutoGen Configuration
+autogen:
+  llm_config:
+    model: "gpt-4"
+    temperature: 0.1
+    max_tokens: 2000
+    timeout: 30
+  
+  agent_config:
+    max_consecutive_auto_reply: 1
+    human_input_mode: "NEVER"
+
+# Performance Tuning
+performance:
+  enable_parallel_processing: true
+  chunk_batch_size: 50
+  embedding_batch_size: 32
+  memory_limit_mb: 2048
+  
+# Monitoring
+monitoring:
+  enable_metrics: true
+  metrics_file: "./data/metrics.json"
+  save_processing_reports: true
+  
+# Backup and Recovery
+backup:
+  auto_backup: true
+  backup_interval_hours: 24
+  backup_retention_days: 30
+  backup_directory: "./data/backups"

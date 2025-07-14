@@ -1,0 +1,390 @@
+# Regeln für Kontext-Anreicherung
+
+# Chunk-Typ Indikatoren
+chunk_type_indicators:
+  introduction:
+    keywords:
+      - "introduction"
+      - "overview"
+      - "getting started"
+      - "welcome to"
+      - "about this"
+      - "what is"
+    patterns:
+      - "^Introduction"
+      - "^Overview"
+      - "^Getting Started"
+    weight: 1.0
+  
+  definition:
+    keywords:
+      - "definition"
+      - "means that"
+      - "refers to"
+      - "defined as"
+      - "terminology"
+    patterns:
+      - "^Definition"
+      - "\\bis defined as\\b"
+      - "\\bmeans that\\b"
+    weight: 0.9
+  
+  example:
+    keywords:
+      - "for example"
+      - "example:"
+      - "e.g."
+      - "such as"
+      - "instance"
+    patterns:
+      - "^Example"
+      - "For example"
+      - "\\be\\.g\\."
+    weight: 0.8
+  
+  procedure:
+    keywords:
+      - "how to"
+      - "step 1"
+      - "procedure"
+      - "follow these steps"
+      - "instructions"
+    patterns:
+      - "^How to"
+      - "^Step \\d+"
+      - "^Procedure"
+      - "\\d+\\. [A-Z]"
+    weight: 0.9
+  
+  warning:
+    keywords:
+      - "warning:"
+      - "caution:"
+      - "important:"
+      - "note:"
+      - "attention:"
+    patterns:
+      - "^Warning"
+      - "^Caution"
+      - "^Important"
+      - "^Note"
+    weight: 1.0
+  
+  best_practice:
+    keywords:
+      - "best practice"
+      - "recommended"
+      - "should"
+      - "tip:"
+      - "recommendation"
+    patterns:
+      - "^Best Practice"
+      - "^Recommendation"
+      - "^Tip"
+    weight: 0.8
+  
+  reference:
+    keywords:
+      - "see also"
+      - "refer to"
+      - "reference"
+      - "documentation"
+      - "further reading"
+    patterns:
+      - "^See also"
+      - "^Reference"
+      - "^Further reading"
+    weight: 0.7
+  
+  summary:
+    keywords:
+      - "summary"
+      - "conclusion"
+      - "in summary"
+      - "to summarize"
+      - "key points"
+    patterns:
+      - "^Summary"
+      - "^Conclusion"
+      - "^Key Points"
+    weight: 0.9
+
+# Semantische Rollen
+semantic_roles:
+  main_content:
+    description: "Primary content of the document"
+    weight: 1.0
+    boost_in_search: false
+    indicators:
+      - "main topic"
+      - "primary focus"
+      - "key information"
+  
+  supporting:
+    description: "Supporting information and details"
+    weight: 0.8
+    boost_in_search: false
+    indicators:
+      - "additional"
+      - "optional"
+      - "see also"
+      - "supplementary"
+  
+  prerequisite:
+    description: "Required knowledge or preparation"
+    weight: 0.9
+    boost_in_search: true
+    indicators:
+      - "prerequisite"
+      - "before you begin"
+      - "required"
+      - "you need"
+      - "must have"
+  
+  advanced:
+    description: "Advanced or expert-level content"
+    weight: 0.7
+    boost_in_search: false
+    indicators:
+      - "advanced"
+      - "expert"
+      - "detailed configuration"
+      - "for experienced users"
+  
+  troubleshooting:
+    description: "Problem-solving and error resolution"
+    weight: 1.0
+    boost_in_search: true
+    indicators:
+      - "troubleshooting"
+      - "error"
+      - "issue"
+      - "problem"
+      - "fix"
+      - "resolve"
+
+# Hierarchie-Erkennung
+hierarchy_patterns:
+  chapter:
+    patterns:
+      - pattern: "^(Chapter|CHAPTER)\\s+(\\d+\\.?\\d*)\\s*:?\\s*(.+)$"
+        groups: ["type", "number", "title"]
+        priority: 1
+      - pattern: "^(Kapitel)\\s+(\\d+\\.?\\d*)\\s*:?\\s*(.+)$"
+        groups: ["type", "number", "title"]
+        priority: 1
+  
+  section:
+    patterns:
+      - pattern: "^(\\d+)\\.\\s+([A-Z][^.]+)$"
+        groups: ["number", "title"]
+        priority: 2
+      - pattern: "^(\\d+)\\.\\s(.+)$"
+        groups: ["number", "title"]
+        priority: 2
+  
+  subsection:
+    patterns:
+      - pattern: "^(\\d+\\.\\d+)\\s+([A-Z][^.]+)$"
+        groups: ["number", "title"]
+        priority: 3
+      - pattern: "^(\\d+\\.\\d+)\\s(.+)$"
+        groups: ["number", "title"]
+        priority: 3
+  
+  subsubsection:
+    patterns:
+      - pattern: "^(\\d+\\.\\d+\\.\\d+)\\s+([A-Z][^.]+)$"
+        groups: ["number", "title"]
+        priority: 4
+      - pattern: "^(\\d+\\.\\d+\\.\\d+)\\s(.+)$"
+        groups: ["number", "title"]
+        priority: 4
+  
+  header:
+    patterns:
+      - pattern: "^([A-Z][A-Z\\s]+)$"
+        groups: ["title"]
+        priority: 2
+      - pattern: "^([A-Z][a-z\\s]+)$"
+        groups: ["title"]
+        priority: 2
+  
+  special_section:
+    patterns:
+      - pattern: "^(Abstract|Summary|Zusammenfassung|Introduction|Einleitung|Conclusion|Fazit|References|Literatur)$"
+        groups: ["title"]
+        priority: 2
+
+# Konzeptextraktion
+concept_extraction:
+  # Technische Begriffe
+  technical_patterns:
+    - pattern: "\\b(API|REST|HTTP|JSON|XML|SQL|database|server|client|web|mobile|app|application)\\b"
+      weight: 1.0
+    - pattern: "\\b(security|authentication|authorization|encryption|SSL|TLS)\\b"
+      weight: 0.9
+    - pattern: "\\b(cloud|AWS|Azure|Google Cloud|Docker|Kubernetes|microservices)\\b"
+      weight: 0.8
+    - pattern: "\\b(Python|Java|JavaScript|C\\+\\+|C#|PHP|Ruby|Go|Rust)\\b"
+      weight: 0.7
+    - pattern: "\\b(React|Angular|Vue|Node\\.js|Django|Flask|Spring|Laravel)\\b"
+      weight: 0.6
+  
+  # Domänen-spezifische Begriffe
+  domain_patterns:
+    - pattern: "\\b(SharePoint|Office 365|Teams|Outlook|OneDrive|Power BI)\\b"
+      weight: 1.0
+    - pattern: "\\b(workflow|automation|collaboration|document management)\\b"
+      weight: 0.9
+    - pattern: "\\b(permission|access control|governance|compliance)\\b"
+      weight: 0.8
+  
+  # Ausschlüsse
+  exclude_patterns:
+    - "\\b(the|and|or|but|in|on|at|to|for|of|with|by)\\b"
+    - "\\b(a|an|this|that|these|those|some|any|all|each|every)\\b"
+    - "\\b(is|are|was|were|be|been|being|have|has|had|do|does|did)\\b"
+
+# Referenzerkennung
+reference_patterns:
+  document_references:
+    - pattern: "see\\s+(?:also\\s+)?[\"\"']([^\"\"']+)[\"\"']"
+      group: 1
+      weight: 1.0
+    - pattern: "refer\\s+to\\s+[\"\"']([^\"\"']+)[\"\"']"
+      group: 1
+      weight: 1.0
+    - pattern: "described\\s+in\\s+[\"\"']([^\"\"']+)[\"\"']"
+      group: 1
+      weight: 0.9
+    - pattern: "\\(see\\s+([^)]+)\\)"
+      group: 1
+      weight: 0.8
+    - pattern: "documentation:\\s*[\"\"']([^\"\"']+)[\"\"']"
+      group: 1
+      weight: 0.9
+  
+  section_references:
+    - pattern: "in\\s+(?:section|chapter)\\s+(\\d+(?:\\.\\d+)*)"
+      group: 1
+      weight: 1.0
+    - pattern: "see\\s+(?:section|chapter)\\s+(\\d+(?:\\.\\d+)*)"
+      group: 1
+      weight: 1.0
+    - pattern: "as\\s+(?:discussed|mentioned)\\s+in\\s+(?:section|chapter)\\s+(\\d+(?:\\.\\d+)*)"
+      group: 1
+      weight: 0.9
+
+# Qualitätsbewertung
+quality_rules:
+  completeness:
+    min_char_length: 50
+    min_word_count: 10
+    require_sentence_ending: true
+    penalty_for_truncation: 0.3
+  
+  coherence:
+    max_word_repetition: 5
+    penalty_per_repetition: 0.05
+    bonus_for_connectives: 0.1
+    connective_words:
+      - "however"
+      - "therefore"
+      - "furthermore"
+      - "moreover"
+      - "consequently"
+      - "additionally"
+      - "meanwhile"
+      - "nevertheless"
+  
+  information_density:
+    min_content_word_ratio: 0.3
+    bonus_content_word_ratio: 0.6
+    min_unique_noun_ratio: 0.1
+    bonus_unique_noun_ratio: 0.15
+    function_words:
+      - "the"
+      - "a"
+      - "an"
+      - "and"
+      - "or"
+      - "but"
+      - "in"
+      - "on"
+      - "at"
+      - "to"
+      - "for"
+      - "of"
+      - "with"
+      - "by"
+  
+  structural_integrity:
+    check_code_blocks: true
+    check_table_consistency: true
+    check_list_continuity: true
+    penalty_incomplete_structure: 0.2
+
+# Sprachspezifische Regeln
+language_rules:
+  german:
+    indicators:
+      - "der"
+      - "die"
+      - "das"
+      - "und"
+      - "oder"
+      - "aber"
+      - "in"
+      - "auf"
+      - "mit"
+      - "von"
+      - "zu"
+      - "für"
+      - "bei"
+      - "nach"
+      - "über"
+      - "unter"
+      - "zwischen"
+      - "während"
+      - "wegen"
+      - "trotz"
+    
+    special_patterns:
+      chapter: "^(Kapitel)\\s+(\\d+)"
+      section: "^(Abschnitt)\\s+(\\d+)"
+      example: "^(Beispiel)"
+      note: "^(Hinweis|Anmerkung)"
+      warning: "^(Warnung|Achtung)"
+  
+  english:
+    indicators:
+      - "the"
+      - "and"
+      - "or"
+      - "but"
+      - "in"
+      - "on"
+      - "at"
+      - "to"
+      - "for"
+      - "of"
+      - "with"
+      - "by"
+      - "from"
+      - "into"
+      - "through"
+      - "during"
+      - "before"
+      - "after"
+      - "above"
+      - "below"
+      - "between"
+      - "among"
+    
+    special_patterns:
+      chapter: "^(Chapter)\\s+(\\d+)"
+      section: "^(Section)\\s+(\\d+)"
+      example: "^(Example)"
+      note: "^(Note)"
+      warning: "^(Warning|Caution)"

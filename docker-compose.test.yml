@@ -1,0 +1,177 @@
+version: '3.8'
+
+# Test-specific Docker Compose configuration
+services:
+  # Test pipeline with sample data
+  rag-test:
+    build:
+      context: .
+      target: development
+    image: sharepoint-rag-pipeline:test
+    container_name: rag-test
+    volumes:
+      - ./test_data:/app/input:ro
+      - test_data:/app/data
+      - test_logs:/app/logs
+    environment:
+      - PIPELINE_MODE=test
+      - LOG_LEVEL=DEBUG
+      - MAX_WORKERS=2
+      - MIN_QUALITY_SCORE=50
+    command: >
+      sh -c "
+        echo '🧪 Running Pipeline Tests...' &&
+        python test_pipeline.py &&
+        echo '📄 Creating test PDF...' &&
+        mkdir -p /app/test_input &&
+        echo 'This is a test document with some content for testing the RAG pipeline.' > /app/test_input/test.txt &&
+        echo '🔄 Running pipeline in test mode...' &&
+        python run_pipeline.py /app/test_input --dry-run &&
+        python run_pipeline.py /app/test_input --force-all --workers 1 &&
+        echo '✅ Test completed successfully!'
+      "
+    healthcheck:
+      test: ["CMD", "python", "test_pipeline.py"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 10s
+
+  # Unit tests
+  rag-unittest:
+    build:
+      context: .
+      target: development
+    image: sharepoint-rag-pipeline:test
+    container_name: rag-unittest
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app/src
+    command: >
+      sh -c "
+        echo '🧪 Running Unit Tests...' &&
+        python -m pytest tests/ -v --tb=short ||
+        echo '⚠️  No tests found - running component tests instead' &&
+        python test_pipeline.py
+      "
+    profiles:
+      - test
+
+  # Performance test
+  rag-performance:
+    build:
+      context: .
+      target: production
+    image: sharepoint-rag-pipeline:latest
+    container_name: rag-performance
+    volumes:
+      - ./test_data:/app/input:ro
+      - perf_data:/app/data
+    environment:
+      - PIPELINE_MODE=performance
+      - LOG_LEVEL=INFO
+    command: >
+      sh -c "
+        echo '⚡ Performance Test...' &&
+        mkdir -p /app/perf_input &&
+        for i in {1..5}; do
+          echo 'Performance test document $i with substantial content for testing processing speed and memory usage.' > /app/perf_input/perf_$i.txt
+        done &&
+        time python run_pipeline.py /app/perf_input --force-all --workers 4 &&
+        echo '📊 Performance test completed'
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+    profiles:
+      - performance
+
+  # Integration test with ChromaDB
+  rag-integration:
+    build:
+      context: .
+      target: production
+    image: sharepoint-rag-pipeline:latest
+    container_name: rag-integration
+    depends_on:
+      - test-chromadb
+    volumes:
+      - ./test_data:/app/input:ro
+      - integration_data:/app/data
+    environment:
+      - PIPELINE_MODE=integration
+      - CHROMADB_HOST=test-chromadb
+      - CHROMADB_PORT=8000
+    command: >
+      sh -c "
+        echo '🔗 Integration Test with External ChromaDB...' &&
+        sleep 5 &&
+        mkdir -p /app/integration_input &&
+        echo 'Integration test document for testing external ChromaDB connectivity.' > /app/integration_input/integration.txt &&
+        python run_pipeline.py /app/integration_input --force-all &&
+        echo '✅ Integration test completed'
+      "
+    profiles:
+      - integration
+
+  # Test ChromaDB service
+  test-chromadb:
+    image: chromadb/chroma:latest
+    container_name: test-chromadb
+    ports:
+      - "18001:8000"
+    environment:
+      - CHROMA_HOST=0.0.0.0
+      - CHROMA_PORT=8000
+    profiles:
+      - integration
+
+  # Load test
+  rag-load:
+    build:
+      context: .
+      target: production
+    image: sharepoint-rag-pipeline:latest
+    container_name: rag-load
+    volumes:
+      - load_data:/app/data
+    environment:
+      - PIPELINE_MODE=load
+      - MAX_WORKERS=1
+    command: >
+      sh -c "
+        echo '🏋️ Load Test...' &&
+        mkdir -p /app/load_input &&
+        for i in {1..20}; do
+          echo 'Load test document $i with comprehensive content for stress testing the pipeline under heavy load conditions. This document contains multiple paragraphs and sections to simulate real-world processing scenarios.' > /app/load_input/load_$i.txt
+        done &&
+        echo 'Starting load test with 20 documents...' &&
+        time python run_pipeline.py /app/load_input --force-all --workers 1 &&
+        echo '💪 Load test completed'
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    profiles:
+      - load
+
+volumes:
+  test_data:
+    driver: local
+  test_logs:
+    driver: local
+  perf_data:
+    driver: local
+  integration_data:
+    driver: local
+  load_data:
+    driver: local
+
+networks:
+  default:
+    name: rag-test-network

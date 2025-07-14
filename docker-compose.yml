@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # Production RAG Pipeline
+  rag-pipeline:
+    build:
+      context: .
+      target: production
+    image: sharepoint-rag-pipeline:latest
+    container_name: rag-pipeline
+    restart: unless-stopped
+    volumes:
+      # Mount input directory (read-only)
+      - "${INPUT_DIR:-./sample_input}:/app/input:ro"
+      # Mount data persistence
+      - rag_data:/app/data
+      - rag_logs:/app/logs
+      # Mount custom config (optional)
+      - "${CONFIG_DIR:-./config}:/app/config:ro"
+    environment:
+      # Pipeline configuration
+      - PIPELINE_MODE=production
+      - LOG_LEVEL=INFO
+      - MAX_WORKERS=${MAX_WORKERS:-4}
+      - MIN_QUALITY_SCORE=${MIN_QUALITY_SCORE:-70}
+      # Optional: OpenAI API for enhanced features
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    command: >
+      sh -c "
+        echo 'Starting RAG Pipeline...' &&
+        python test_pipeline.py &&
+        python run_pipeline.py /app/input --workers $${MAX_WORKERS:-4}
+      "
+    healthcheck:
+      test: ["CMD", "python", "test_pipeline.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+  # Development environment
+  rag-dev:
+    build:
+      context: .
+      target: development
+    image: sharepoint-rag-pipeline:dev
+    container_name: rag-dev
+    volumes:
+      # Mount source code for development
+      - .:/app
+      # Separate data volume for development
+      - rag_dev_data:/app/data
+      - rag_dev_logs:/app/logs
+    environment:
+      - PIPELINE_MODE=development
+      - LOG_LEVEL=DEBUG
+    ports:
+      - "8888:8888"  # Jupyter
+      - "8000:8000"  # Potential web interface
+    command: bash
+    profiles:
+      - dev
+
+  # Scheduled pipeline runner
+  rag-scheduler:
+    build:
+      context: .
+      target: production
+    image: sharepoint-rag-pipeline:latest
+    container_name: rag-scheduler
+    restart: unless-stopped
+    volumes:
+      - "${INPUT_DIR:-./sample_input}:/app/input:ro"
+      - rag_data:/app/data
+      - rag_logs:/app/logs
+      - "${CONFIG_DIR:-./config}:/app/config:ro"
+    environment:
+      - PIPELINE_MODE=scheduled
+      - LOG_LEVEL=INFO
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-0 2 1 * *}  # Monthly at 2 AM
+      - MAX_WORKERS=${MAX_WORKERS:-4}
+    command: >
+      sh -c "
+        echo 'Installing cron...' &&
+        apt-get update && apt-get install -y cron &&
+        echo '$${CRON_SCHEDULE} cd /app && python run_pipeline.py /app/input --workers $${MAX_WORKERS} >> /app/logs/cron.log 2>&1' | crontab - &&
+        echo 'Starting cron daemon...' &&
+        cron -f
+      "
+    profiles:
+      - scheduled
+
+  # ChromaDB standalone (optional)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      - CHROMA_HOST=0.0.0.0
+      - CHROMA_PORT=8000
+    profiles:
+      - external-db
+
+  # Monitoring with simple log viewer
+  log-viewer:
+    image: nginx:alpine
+    container_name: rag-log-viewer
+    ports:
+      - "8080:80"
+    volumes:
+      - rag_logs:/usr/share/nginx/html/logs:ro
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    profiles:
+      - monitoring
+
+volumes:
+  rag_data:
+    driver: local
+  rag_logs:
+    driver: local
+  rag_dev_data:
+    driver: local
+  rag_dev_logs:
+    driver: local
+  chromadb_data:
+    driver: local
+
+networks:
+  default:
+    name: rag-network

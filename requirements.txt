@@ -1,0 +1,49 @@
+# Core Pipeline Dependencies (Python 3.8-3.12 compatible)
+pydantic>=2.0.0,<3.0.0
+pyyaml>=6.0
+python-dateutil>=2.8.0
+
+# AutoGen Framework (optional, fallback modes available)
+pyautogen>=0.1.0
+
+# PDF Processing (multiple backends for reliability)
+PyPDF2>=3.0.0
+pdfplumber>=0.9.0
+PyMuPDF>=1.23.0
+
+# Vector Database (with fallback to JSON)
+chromadb>=0.4.0,<0.5.0
+sentence-transformers>=2.2.0
+
+# NLP Processing (with fallback modes)
+spacy>=3.6.0,<4.0.0
+transformers>=4.30.0,<5.0.0
+torch>=2.0.0
+
+# Utilities
+tqdm>=4.65.0
+
+# Optional OCR Support
+pytesseract>=0.3.10
+Pillow>=9.0.0,<11.0.0
+
+# Development and Testing (only in dev builds)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=23.0.0
+flake8>=6.0.0
+
+# Performance Monitoring
+psutil>=5.9.0
+memory-profiler>=0.61.0
+
+# Data Science (for analysis)
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+
+# Security updates
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Fix for Python 3.11+ compatibility
+setuptools>=65.0.0
