@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Production RAG Pipeline
   rag-pipeline:
@@ -40,11 +38,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
-          cpus: '2.0'
+          memory: ${DOCKER_MEMORY_LIMIT:-4G}
+          cpus: '${DOCKER_CPU_LIMIT:-2.0}'
         reservations:
-          memory: 2G
-          cpus: '1.0'
+          memory: ${DOCKER_MEMORY_RESERVATION:-2G}
+          cpus: '${DOCKER_CPU_RESERVATION:-1.0}'
 
   # Development environment
   rag-dev:
@@ -87,13 +85,11 @@ services:
       - LOG_LEVEL=INFO
       - CRON_SCHEDULE=${CRON_SCHEDULE:-0 2 1 * *}  # Monthly at 2 AM
       - MAX_WORKERS=${MAX_WORKERS:-4}
+      - SCHEDULE_INTERVAL=${SCHEDULE_INTERVAL:-3600}  # Check every hour
     command: >
       sh -c "
-        echo 'Installing cron...' &&
-        apt-get update && apt-get install -y cron &&
-        echo '$${CRON_SCHEDULE} cd /app && python run_pipeline.py /app/input --workers $${MAX_WORKERS} >> /app/logs/cron.log 2>&1' | crontab - &&
-        echo 'Starting cron daemon...' &&
-        cron -f
+        echo 'Starting scheduled pipeline runner...' &&
+        python run_production_pipeline.py /app/input --schedule '$${CRON_SCHEDULE}' --workers $${MAX_WORKERS}
       "
     profiles:
       - scheduled

@@ -1,0 +1,21 @@
+# Full Pipeline Dependencies with AI/ML capabilities
+# Use this for complete functionality
+
+# Core requirements (from requirements.txt)
+-r requirements.txt
+
+# AI/ML Dependencies (installed separately to avoid conflicts)
+torch==2.7.1
+sentence-transformers==5.0.0
+spacy==3.8.7
+transformers==4.53.2
+
+# Vector Database
+chromadb==0.4.24
+
+# AutoGen Framework
+pyautogen==0.10.0
+
+# Additional ML dependencies
+scikit-learn==1.7.0
+scipy==1.16.0

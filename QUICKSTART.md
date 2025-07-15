@@ -1,103 +1,227 @@
-# 🚀 SharePoint RAG Pipeline - Quick Start Guide
+# 🚀 SharePoint RAG Pipeline - Docker Quick Start Guide
 
-**Von 0 auf 100 in 3 Minuten!** 🚀💨
+**Von 0 auf 100 in 5 Minuten!** 🚀💨
 
-## ⚡ Der schnellste Weg (3 Befehle)
+Diese Anleitung funktioniert auf **Windows**, **macOS** und **Linux** mit Docker.
+
+## 📋 Voraussetzungen
+
+### Docker Installation prüfen/installieren
+
+<details>
+<summary><b>🪟 Windows</b></summary>
+
+1. **Docker Desktop installieren:**
+   ```powershell
+   # Lade Docker Desktop herunter: https://www.docker.com/products/docker-desktop
+   # Oder mit winget:
+   winget install Docker.DockerDesktop
+   ```
+
+2. **Installation verifizieren:**
+   ```powershell
+   docker --version
+   docker compose version
+   ```
+
+3. **WSL2 Backend aktivieren** (empfohlen):
+   - Docker Desktop → Settings → General → "Use WSL 2 based engine"
+
+</details>
+
+<details>
+<summary><b>🐧 Linux (Ubuntu/Debian)</b></summary>
+
+1. **Docker installieren:**
+   ```bash
+   # Docker Engine installieren
+   curl -fsSL https://get.docker.com | sh
+   
+   # Benutzer zur Docker-Gruppe hinzufügen
+   sudo usermod -aG docker $USER
+   
+   # Neu einloggen oder newgrp verwenden
+   newgrp docker
+   ```
+
+2. **Docker Compose installieren:**
+   ```bash
+   # Moderne Docker-Installation hat bereits compose als Plugin
+   docker compose version
+   ```
+
+3. **Installation verifizieren:**
+   ```bash
+   docker --version
+   docker compose version
+   ```
+
+</details>
+
+<details>
+<summary><b>🍎 macOS</b></summary>
+
+1. **Docker Desktop installieren:**
+   ```bash
+   # Mit Homebrew:
+   brew install --cask docker
+   
+   # Oder direkt herunterladen: https://www.docker.com/products/docker-desktop
+   ```
+
+2. **Installation verifizieren:**
+   ```bash
+   docker --version
+   docker compose version
+   ```
+
+</details>
+
+---
+
+## ⚡ 3-Schritt Quick Start
+
+### 1️⃣ Repository vorbereiten
 
 ```bash
-# 1. Projekt vorbereiten
+# Repository klonen/extrahieren (falls noch nicht geschehen)
 cd sharepoint-rag-pipeline
+
+# Environment-Datei erstellen
 cp .env.example .env
+```
 
-# 2. Setup ausführen
-make setup
+### 2️⃣ Input-Verzeichnis konfigurieren
 
-# 3. PDFs verarbeiten
+Öffne die `.env` Datei und passe den `INPUT_DIR` an:
+
+<details>
+<summary><b>🪟 Windows Beispiele</b></summary>
+
+```env
+# Absolute Windows-Pfade (empfohlen):
+INPUT_DIR=C:\Users\YourName\Documents\PDFs
+
+# Oder relative Pfade:
+INPUT_DIR=.\input
+
+# UNC-Pfade (Netzwerk):
+INPUT_DIR=\\server\share\documents
+```
+
+</details>
+
+<details>
+<summary><b>🐧 Linux Beispiele</b></summary>
+
+```env
+# Absolute Linux-Pfade:
+INPUT_DIR=/home/username/Documents/pdfs
+INPUT_DIR=/var/data/sharepoint/documents
+
+# Relative Pfade:
+INPUT_DIR=./input
+```
+
+</details>
+
+<details>
+<summary><b>🍎 macOS Beispiele</b></summary>
+
+```env
+# Absolute macOS-Pfade:
+INPUT_DIR=/Users/username/Documents/PDFs
+INPUT_DIR=/Volumes/SharePoint/Documents
+
+# Relative Pfade:
+INPUT_DIR=./input
+```
+
+</details>
+
+### 3️⃣ Pipeline ausführen
+
+```bash
+# Schneller Start (nur PDF-Verarbeitung, 5-10 min):
+make build-minimal
 make process INPUT=/path/to/your/pdfs
+
+# Vollständiger Build (alle Features, 15-30 min):
+make build
+make process INPUT=/path/to/your/pdfs
+
+# Oder mit docker compose direkt:
+docker compose up --build rag-pipeline
 ```
 
 **Das war's!** 🎉 Die Pipeline läuft und verarbeitet Ihre Dokumente.
 
-**✅ Production-Ready:** Business Intelligence PDF (10 Seiten, 25.049 Zeichen → 3 kontextuelle Chunks, ChromaDB + ONNX ML)
+**💡 Tipp:** Verwenden Sie `make build-minimal` für den ersten Test - das ist viel schneller!
 
 ---
 
-## 🐳 Docker Quick Start (Empfohlen)
+## 🔧 Detaillierte Konfiguration
 
-### Voraussetzungen prüfen
-```bash
-# Docker verfügbar?
-docker --version          # Sollte 20.10+ sein
-docker-compose --version  # Sollte 1.29+ sein
+### Environment-Variablen anpassen
 
-# Falls nicht installiert:
-curl -fsSL https://get.docker.com | sh
+Bearbeite die `.env` Datei für erweiterte Konfiguration:
+
+```env
+# Anzahl paralleler Worker (anpassen je nach CPU/RAM)
+MAX_WORKERS=4
+
+# Qualitätsschwelle für Chunks (0-100)
+MIN_QUALITY_SCORE=70
+
+# Log-Level
+LOG_LEVEL=INFO
+
+# Optional: OpenAI API für erweiterte Features
+OPENAI_API_KEY=your-api-key-here
 ```
 
-### 1️⃣ Basis-Setup (einmalig)
+### Verschiedene Ausführungsmodi
+
+<details>
+<summary><b>🔨 Entwicklung</b></summary>
+
 ```bash
-cd sharepoint-rag-pipeline
+# Development-Container starten
+make setup-dev
+make run-dev
 
-# Environment konfigurieren
-cp .env.example .env
-nano .env  # INPUT_DIR auf Ihr PDF-Verzeichnis setzen
+# Interaktive Shell
+make shell-dev
 
-# Container bauen
-make setup
+# Jupyter Notebook starten
+make jupyter
+# Dann: http://localhost:8888
 ```
 
-### 2️⃣ Pipeline ausführen
+</details>
+
+<details>
+<summary><b>🏭 Produktion</b></summary>
+
 ```bash
-# Option A: Mit Makefile (am einfachsten)
-make process INPUT=/absolute/path/to/pdfs
-
-# Option B: Mit docker-compose (nutzt .env)
-docker-compose up rag-pipeline
-
-# Option C: Mit docker run (explizite Pfade)
-docker run --rm \
-  -v "/absolute/path/to/pdfs:/app/input:ro" \
-  -v "$(pwd)/data:/app/data" \
-  sharepoint-rag-pipeline:latest
-```
-
-### 3️⃣ Ergebnisse prüfen
-```bash
-# Verarbeitungsbericht ansehen
-cat data/reports/latest_report.json | python -m json.tool
-
-# Logs prüfen
-make logs
-
-# Web-Interface für Monitoring
-make monitor  # http://localhost:8080
-```
-
----
-
-## 🎯 Typische Anwendungsfälle
-
-### 1️⃣ Einmalige Verarbeitung
-```bash
-# Test-Lauf (zeigt nur, was verarbeitet würde)
-make process-dry INPUT=/path/to/pdfs
-
-# Echte Verarbeitung
+# Production-Pipeline
+make build
 make process INPUT=/path/to/pdfs
 
-# Mit mehr Kontrolle
-docker run --rm \
-  -v "/path/to/pdfs:/app/input:ro" \
-  -v "$(pwd)/data:/app/data" \
-  -e MAX_WORKERS=2 \
-  -e MIN_QUALITY_SCORE=80 \
-  sharepoint-rag-pipeline:latest
+# Mit eigenen Ressourcen-Limits
+docker compose up --build \
+  --scale rag-pipeline=1 \
+  rag-pipeline
 ```
 
-### 2️⃣ Monatliche Automatisierung
+</details>
+
+<details>
+<summary><b>⏰ Geplante Ausführung</b></summary>
+
 ```bash
-# Scheduler einrichten
-echo "CRON_SCHEDULE=0 2 1 * *" >> .env  # Jeden 1. des Monats um 2:00
+# Monatliche Automatisierung einrichten
+echo "CRON_SCHEDULE=0 2 1 * *" >> .env
 make run-scheduled
 
 # Status prüfen
@@ -105,361 +229,332 @@ make status
 make logs-scheduler
 ```
 
-### 3️⃣ Development/Testing
+</details>
+
+<details>
+<summary><b>📊 Monitoring</b></summary>
+
 ```bash
-# Entwicklungsumgebung starten
-make setup-dev
-make run-dev
+# Monitoring-Dashboard starten
+make monitor
+# Dashboard: http://localhost:8080
 
-# Tests ausführen
-make test-all
+# Container-Status anzeigen
+make status
 
-# Jupyter Notebook für Analyse
-make jupyter  # http://localhost:8888
+# Live-Logs verfolgen
+make logs
 ```
 
-### 4️⃣ Monitoring & Debugging
-```bash
-make help              # Alle verfügbaren Befehle
-make logs             # Live-Logs anzeigen
-make status           # Container-Status
-make health           # Health-Check ausführen
-make stats            # Resource-Usage
-```
+</details>
 
 ---
 
-## ⚙️ Wichtige Einstellungen
+## 🎯 Beispiel-Workflows
 
-### Environment Variables (.env)
+### Einmalige Verarbeitung
 ```bash
-# Wichtigste Einstellungen
-INPUT_DIR=/path/to/sharepoint/pdfs    # Ihr PDF-Verzeichnis
-MAX_WORKERS=4                         # Anzahl parallele Worker
-MIN_QUALITY_SCORE=70                  # Qualitätsschwelle (0-100)
-CRON_SCHEDULE=0 2 1 * *              # Monatlich um 2:00 Uhr
+# Test-Lauf (zeigt nur, was verarbeitet würde)
+make process-dry INPUT=/path/to/pdfs
 
-# Optional
-OPENAI_API_KEY=your-api-key          # Für erweiterte AI-Features
-LOG_LEVEL=INFO                       # DEBUG für mehr Details
+# Echte Verarbeitung
+make process INPUT=/path/to/pdfs
+
+# Mit erweiterten Optionen
+docker compose run --rm rag-pipeline \
+  python run_pipeline.py /app/input \
+  --workers 8 \
+  --force-all \
+  --min-quality 80
 ```
 
-### Performance-Tuning
+### Batch-Verarbeitung
 ```bash
-# Für mehr Geschwindigkeit (mehr RAM benötigt)
-docker run -e MAX_WORKERS=8 sharepoint-rag-pipeline:latest
-
-# Für weniger RAM-Verbrauch
-docker run -e MAX_WORKERS=2 --memory=2g sharepoint-rag-pipeline:latest
-
-# Mit GPU-Beschleunigung (falls verfügbar)
-docker run --gpus all sharepoint-rag-pipeline:gpu
+# Mehrere Verzeichnisse verarbeiten
+for dir in /path/to/docs/*; do
+  make process INPUT="$dir"
+done
 ```
 
-### Chunk-Einstellungen (config/pipeline.yaml)
-```yaml
-chunking:
-  chunk_size: 1000        # Token pro Chunk
-  chunk_overlap: 200      # Überlappung zwischen Chunks
-  strategy: "contextual"   # Intelligente Segmentierung
-
-quality_validation:
-  min_quality_score: 70   # Qualitätsschwelle
-  check_completeness: true
-```
-
----
-
-## 🔥 Häufige Probleme & 30-Sekunden-Fixes
-
-### "Permission denied" bei Docker
+### Monitoring und Logs
 ```bash
-# Lösung 1: Docker-Gruppe beitreten
-sudo usermod -aG docker $USER
-newgrp docker
+# Verarbeitungsberichte ansehen
+docker compose exec rag-pipeline \
+  cat /app/data/reports/latest_report.json
 
-# Lösung 2: Ownership korrigieren
-sudo chown -R $USER:$USER ./data
-
-# Lösung 3: Mit sudo
-sudo make process INPUT=/path/to/pdfs
-```
-
-### "Out of memory" Fehler
-```bash
-# Memory-Limit erhöhen
-docker run --memory=8g sharepoint-rag-pipeline:latest
-
-# Weniger Worker
-make process INPUT=/path MAX_WORKERS=2
-
-# Swap aktivieren (Linux)
-sudo fallocate -l 4G /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
-```
-
-### "File not found" bei Volumes
-```bash
-# ❌ Falsch (relative Pfade):
-docker run -v "./pdfs:/app/input" ...
-
-# ✅ Richtig (absolute Pfade):
-docker run -v "/home/user/pdfs:/app/input" ...
-docker run -v "$(pwd)/pdfs:/app/input" ...
-make process INPUT=/absolute/path/to/pdfs
-```
-
-### Langsame Verarbeitung
-```bash
-# CPU-Auslastung prüfen
+# Live-Performance-Monitoring
 make stats
 
-# Logs auf Fehler prüfen
-make logs | grep ERROR
-
-# Performance-Test
-make test-performance
+# Gesundheitsprüfung
+make health
 ```
 
-### ChromaDB Connection Error
+---
+
+## 🛠️ Erweiterte Docker-Befehle
+
+### Container-Management
 ```bash
-# Kein Problem! Pipeline nutzt automatisch JSON-Fallback
-# Oder explizit ChromaDB starten:
-docker-compose --profile external-db up -d chromadb
+# Alle Dienste starten
+docker compose up -d
+
+# Bestimmten Dienst neu starten
+docker compose restart rag-pipeline
+
+# Logs eines bestimmten Dienstes
+docker compose logs -f rag-pipeline
+
+# In laufenden Container einsteigen
+docker compose exec rag-pipeline bash
+```
+
+### Daten-Management
+```bash
+# Backup erstellen
+make backup
+
+# Daten-Volumes anzeigen
+docker volume ls | grep rag
+
+# Volume-Größe prüfen
+docker system df -v
+```
+
+### Bereinigung
+```bash
+# Container stoppen und entfernen
+make clean
+
+# Container + Volumes entfernen
+make clean-all
+
+# Images entfernen
+make clean-images
+
+# Vollständige Bereinigung
+docker system prune -a --volumes
 ```
 
 ---
 
-## 🔬 Was passiert bei der Verarbeitung?
+## 🔍 Fehlerbehebung
 
-### Pipeline-Phasen
-1. **📄 Multi-Backend PDF-Extraktion**: PyMuPDF → pdfplumber → PyPDF2 (Fallback-Chain)
-2. **📝 Intelligente Metadaten-Analyse**: Titel, Autoren, Datum, Dokumenttyp
-3. **✂️ Contextual Chunking**: Hierarchie-bewusste Segmentierung
-4. **🧠 Context Enrichment**: 
-   - Dokumenthierarchie (Kapitel → Sektion → Subsektionen)
-   - Navigationskontext (Previous/Next/Related chunks)
-   - Semantische Rollen (Main content, Prerequisites, etc.)
-   - NLP-basierte Konzeptextraktion
-5. **✅ 7-stufige Qualitätsprüfung**: Vollständigkeit, Kohärenz, Informationsdichte
-6. **💾 Dual Storage**: ChromaDB (Vektoren) + SQLite (Metadaten) + JSON-Fallback
+### Häufige Probleme und Lösungen
 
-### Technische Features
-- **Incremental Processing**: Hash-basierte Änderungserkennung
-- **Fault Tolerance**: Automatische Fallback-Modi bei Komponentenfehlern
-- **Rich Metadata**: Vollständige Kontext-Information pro Chunk
-- **Quality Scoring**: 0-100 Bewertung für jeden Chunk
+<details>
+<summary><b>❌ "Permission denied" auf Linux</b></summary>
 
-**Ergebnis**: Production-ready Contextual RAG mit maximaler Robustheit! 🚀
+```bash
+# Docker-Gruppe hinzufügen
+sudo usermod -aG docker $USER
+
+# Neu einloggen oder:
+newgrp docker
+
+# Testen
+docker run hello-world
+```
+
+</details>
+
+<details>
+<summary><b>❌ "Volume mount failed" auf Windows</b></summary>
+
+1. **Docker Desktop File Sharing aktivieren:**
+   - Docker Desktop → Settings → Resources → File Sharing
+   - Laufwerk C:\ (oder entsprechendes) hinzufügen
+
+2. **Pfad-Format prüfen:**
+   ```env
+   # Richtig:
+   INPUT_DIR=C:\Users\Name\Documents\PDFs
+   
+   # Falsch:
+   INPUT_DIR=C:/Users/Name/Documents/PDFs (in .env)
+   ```
+
+</details>
+
+<details>
+<summary><b>❌ "No space left on device"</b></summary>
+
+```bash
+# Docker-Speicher bereinigen
+docker system prune -a --volumes
+
+# Docker Root-Verzeichnis verschieben (Linux):
+sudo systemctl stop docker
+sudo mv /var/lib/docker /new/location/docker
+sudo ln -s /new/location/docker /var/lib/docker
+sudo systemctl start docker
+```
+
+</details>
+
+<details>
+<summary><b>❌ Pipeline läuft nicht / Container startet nicht</b></summary>
+
+```bash
+# Detaillierte Logs anzeigen
+docker compose logs rag-pipeline
+
+# Container-Status prüfen
+docker compose ps
+
+# Gesundheitsprüfung
+docker compose exec rag-pipeline python test_pipeline.py
+
+# Dependencies überprüfen
+docker compose exec rag-pipeline pip list
+```
+
+</details>
+
+<details>
+<summary><b>❌ Langsame Performance</b></summary>
+
+1. **Ressourcen erhöhen:**
+   ```env
+   # In .env:
+   MAX_WORKERS=2  # Reduzieren bei wenig RAM
+   ```
+
+2. **Docker-Ressourcen anpassen:**
+   - Docker Desktop → Settings → Resources
+   - CPU: 4+ Kerne, RAM: 8+ GB
+
+3. **Volume-Performance (Windows):**
+   ```yaml
+   # In docker-compose.yml für bessere Performance:
+   volumes:
+     - type: bind
+       source: C:\path\to\data
+       target: /app/input
+       consistency: cached
+   ```
+
+</details>
 
 ---
 
-## 📈 Beispiel-Output
+## 📈 Performance-Optimierung
 
-### Console Output
+### Hardware-Empfehlungen
+- **CPU:** 4+ Kerne
+- **RAM:** 8+ GB (16+ GB für große Dokumente)
+- **Storage:** SSD empfohlen
+
+### Docker-Optimierung
+
+<details>
+<summary><b>🪟 Windows-spezifisch</b></summary>
+
+```bash
+# WSL2 Memory-Limit setzen
+# %USERPROFILE%\.wslconfig erstellen:
+[wsl2]
+memory=8GB
+processors=4
 ```
-🚀 SharePoint RAG Pipeline v2.0.0
-📁 Processing /data/sharepoint/pdfs
-📊 Found 42 PDF files (3 new, 39 unchanged)
 
-[===================] 100% | 42/42 files | ETA: 00:00
+</details>
 
-✅ PROCESSING COMPLETED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total files: 42
-Processed: 40 ✅ | Failed: 2 ❌
-Chunks created: 2,456 (avg: 61.4 per doc)
-Quality score: 87.3 ± 12.1 (min: 65, max: 98)
-Processing time: 4m 12s (1.7 files/min)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+<details>
+<summary><b>🐧 Linux-spezifisch</b></summary>
 
-### Report JSON (data/reports/latest_report.json)
-```json
+```bash
+# Docker Daemon-Konfiguration
+# /etc/docker/daemon.json:
 {
-  "timestamp": "2024-01-15T14:30:00Z",
-  "summary": {
-    "total_files_processed": 42,
-    "successful": 40,
-    "failed": 2,
-    "total_chunks_created": 2456,
-    "average_quality_score": 87.3,
-    "processing_time_seconds": 252.1
-  },
-  "performance": {
-    "files_per_minute": 10.0,
-    "chunks_per_second": 9.8,
-    "memory_peak_mb": 2048,
-    "storage_used_mb": 145.7
-  },
-  "quality_distribution": {
-    "excellent": 23,  // 90-100
-    "good": 15,       // 70-89
-    "acceptable": 2,  // 50-69
-    "poor": 0         // < 50
+  "storage-driver": "overlay2",
+  "log-driver": "local",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
   }
 }
 ```
 
----
+</details>
 
-## 📁 Output erklärt
-
-```
-data/
-├── vectors/              # 🧠 Vektor-Embeddings
-│   ├── chroma.sqlite3   # ChromaDB (primär)
-│   └── fallback/        # JSON-Fallback
-├── metadata/            # 📊 Metadaten
-│   └── metadata.db      # SQLite mit allen Infos
-├── state/               # 🔄 Processing State
-│   └── file_hashes.json # Für incremental updates
-├── reports/             # 📈 Berichte
-│   ├── latest_report.json
-│   └── archive/         # Historische Reports
-└── logs/                # 📝 Detaillierte Logs
-    └── contextual_pipeline.log
-```
-
-### Projektstruktur (Vollständig)
-```
-sharepoint-rag-pipeline/
-├── 🐳 Docker Files
-│   ├── Dockerfile              # Multi-stage Container
-│   ├── docker-compose.yml      # Services & Orchestrierung
-│   ├── .env.example           # Environment Template
-│   └── Makefile               # 40+ vereinfachte Commands
-├── 🏗️ Source Code
-│   ├── src/agents/            # AutoGen Agenten
-│   ├── src/pipeline/          # Pipeline-Orchestrierung
-│   ├── src/models/            # Datenmodelle
-│   └── src/storage/           # Speicher-Backend
-├── ⚙️ Configuration
-│   ├── config/pipeline.yaml   # Hauptkonfiguration
-│   └── config/context_rules.yaml # Kontext-Regeln
-├── 🚀 Main Scripts
-│   ├── run_pipeline.py        # Hauptskript
-│   └── test_pipeline.py       # Test & Validierung
-└── 📚 Documentation
-    ├── QUICKSTART.md          # Diese Datei
-    ├── DOCKER.md              # Container-Guide
-    └── INSTALLATION.md        # Vollständige Installation
+### Pipeline-Optimierung
+```env
+# In .env für bessere Performance:
+MAX_WORKERS=4              # Je nach CPU-Kerne
+MIN_QUALITY_SCORE=70       # Niedrigerer Wert = mehr Chunks
+TIMEOUT_PER_DOCUMENT=300   # Timeout erhöhen für große PDFs
+LOG_LEVEL=WARNING          # Weniger Logs für bessere Performance
 ```
 
 ---
 
-## 🚀 Produktiv-Deployment
+## 🔧 Makefile-Referenz
 
-### Automatisierung einrichten
+Alle verfügbaren Befehle:
+
 ```bash
-# Docker-Scheduler (empfohlen)
-echo "CRON_SCHEDULE=0 2 1 * *" >> .env  # Monatlich
-docker-compose --profile scheduled up -d rag-scheduler
+# Build-Befehle
+make help              # Zeigt alle verfügbaren Befehle
+make build             # Baut das Production-Image (vollständig)
+make build-minimal     # Baut minimale Version (nur PDF-Verarbeitung)
+make build-no-ai       # Baut ohne AI/ML-Dependencies
+make setup             # Komplette Einrichtung
 
-# Oder systemweiter Cron-Job
-sudo crontab -e
-# Zeile hinzufügen:
-0 2 1 * * cd /opt/sharepoint-rag-pipeline && make process INPUT=/data/sharepoint/pdfs
-```
+# Ausführung
+make process INPUT=... # Verarbeitet Dokumente
+make run-dev           # Startet Development-Umgebung
+make monitor           # Startet Monitoring-Dashboard
 
-### Monitoring & Alerting
-```bash
-# Web-Dashboard starten
-make monitor  # http://localhost:8080
+# Wartung
+make logs              # Zeigt Live-Logs
+make clean             # Bereinigt Container
+make backup            # Erstellt Daten-Backup
+make health            # Gesundheitsprüfung
 
-# Health-Check Endpoint
-curl http://localhost:8000/health
-
-# E-Mail Benachrichtigungen (Linux)
-make process INPUT=/data/pdfs && \
-  mail -s "✅ RAG Pipeline Success" admin@company.com < data/reports/latest_report.json
-```
-
-### Cloud-Deployment
-```bash
-# Image für Registry bauen
-docker build -t your-registry.com/rag-pipeline:v1.0 .
-docker push your-registry.com/rag-pipeline:v1.0
-
-# Kubernetes deployment
-kubectl apply -f k8s-deployment.yaml
-
-# Docker Swarm
-docker stack deploy -c docker-compose.yml rag-stack
+# Plattform-spezifische Hilfe
+make setup-linux       # Linux-Setup-Anweisungen
+make setup-windows     # Windows-Setup-Anweisungen
+make setup-macos       # macOS-Setup-Anweisungen
 ```
 
 ---
 
-## ⚡ Performance & Optimierung
+## 🆘 Support
 
-### 🚀 Geschwindigkeit optimieren
+### Log-Dateien finden
 ```bash
-# Mehr Worker (CPU-intensive Aufgaben)
-make process INPUT=/path/to/pdfs
-docker run -e MAX_WORKERS=8 sharepoint-rag-pipeline:latest
+# Container-Logs
+docker compose logs rag-pipeline > pipeline.log
 
-# GPU-Beschleunigung (falls verfügbar)
-docker run --gpus all sharepoint-rag-pipeline:gpu
+# Application-Logs (im Container)
+docker compose exec rag-pipeline ls -la /app/logs/
+
+# Volume-Logs (auf Host)
+docker volume inspect rag_logs
 ```
 
-### 💾 Speicher optimieren
-```bash
-# Weniger Worker bei begrenztem RAM
-docker run -e MAX_WORKERS=2 --memory=2g sharepoint-rag-pipeline:latest
-
-# Chunk-Größe reduzieren
-docker run -e CHUNK_SIZE=500 -e CHUNK_OVERLAP=100 sharepoint-rag-pipeline:latest
+### Debug-Modus aktivieren
+```env
+# In .env:
+LOG_LEVEL=DEBUG
+DEBUG_AGENTS=true
+DEVELOPMENT_MODE=true
 ```
 
-### ⚖️ Qualität vs. Geschwindigkeit
-```bash
-# Hohe Qualität (langsamer)
-docker run -e MIN_QUALITY_SCORE=90 sharepoint-rag-pipeline:latest
-
-# Schnelle Verarbeitung (niedrigere Standards)
-docker run -e MIN_QUALITY_SCORE=60 -e SKIP_OCR=true sharepoint-rag-pipeline:latest
-```
-
-### 📊 Benchmark-Zahlen
-| Dokumente | Worker | Zeit | RAM |
-|-----------|--------|------|-----|
-| 10 PDFs | 4 | ~2 min | 1.5 GB |
-| 100 PDFs | 4 | ~15 min | 2.5 GB |
-| 100 PDFs | 8 | ~8 min | 4 GB |
-| 1000 PDFs | 4 | ~2.5 h | 4 GB |
+### Community & Issues
+- **GitHub Issues:** [sharepoint-rag-pipeline/issues](https://github.com/your-repo/sharepoint-rag-pipeline/issues)
+- **Diskussionen:** [sharepoint-rag-pipeline/discussions](https://github.com/your-repo/sharepoint-rag-pipeline/discussions)
 
 ---
 
-## 🎓 Weiterführende Ressourcen
+## 📚 Weiterführende Dokumentation
 
-📚 **Dokumentation**
-- [DOCKER.md](DOCKER.md) - Vollständiger Container-Guide
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Problemlösungen
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System-Design
-- [API.md](API.md) - Entwickler-Referenz
-
-🛠️ **Tools & Integration**
-- [Makefile](Makefile) - Alle Befehle im Überblick
-- [docker-compose.yml](docker-compose.yml) - Service-Konfiguration
-- [config/](config/) - Anpassbare Einstellungen
-
-💬 **Support**
-- GitHub Issues für Bug Reports
-- Discussions für Fragen
-- Wiki für Community-Beiträge
+- 🏗️ **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technische Architektur
+- 🔧 **[CONFIGURATION.md](CONFIGURATION.md)** - Detaillierte Konfiguration
+- 🐳 **[DOCKER.md](DOCKER.md)** - Docker-spezifische Details
+- 🚨 **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Erweiterte Fehlerbehebung
+- 📖 **[EXAMPLES.md](EXAMPLES.md)** - Beispiele und Use Cases
 
 ---
 
-## 🎉 Ready to Go!
-
-**Herzlichen Glückwunsch!** Sie haben die SharePoint RAG Pipeline erfolgreich eingerichtet!
-
-Die Pipeline verarbeitet nun Ihre Dokumente mit fortschrittlicher Kontext-Anreicherung und ist bereit für den produktiven Einsatz.
-
-### 🚀 Immediate Next Steps
-1. 📁 PDFs in Ihr Verzeichnis legen
-2. 🏃 `make process INPUT=/path/to/pdfs` ausführen
-3. 📊 Ergebnisse in `data/reports/` prüfen
-4. 🔍 ChromaDB für RAG-Abfragen nutzen
-5. 📈 Monitoring Dashboard aufrufen: `make monitor`
-
-**Happy Processing!** 🚀📄➡️🧠
+🎉 **Viel Erfolg mit Ihrer SharePoint RAG Pipeline!**

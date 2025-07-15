@@ -8,29 +8,17 @@ import time
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-try:
-    from agents.pdf_extractor import PDFExtractorAgent
-    from agents.context_enricher import ContextEnricherAgent
-    from agents.metadata_extractor import MetadataExtractorAgent
-    from agents.chunk_creator import ChunkCreatorAgent
-    from agents.quality_validator import QualityValidatorAgent
-except ImportError:
-    # Fallback imports - these will be implemented later
-    PDFExtractorAgent = None
-    MetadataExtractorAgent = None
-    ChunkCreatorAgent = None
-    QualityValidatorAgent = None
+from agents.pdf_extractor import PDFExtractorAgent
+from agents.context_enricher import ContextEnricherAgent
+from agents.metadata_extractor import MetadataExtractorAgent
+from agents.chunk_creator import ChunkCreatorAgent
+from agents.quality_validator import QualityValidatorAgent
 
 from pipeline.incremental_processor import IncrementalProcessor
 from models.contextual_chunk import ContextualChunk
 
-try:
-    from storage.vector_store import ContextualVectorStore
-    from storage.metadata_store import MetadataStore
-except ImportError:
-    # Fallback - these will be implemented later
-    ContextualVectorStore = None
-    MetadataStore = None
+from storage.vector_store import ContextualVectorStore
+from storage.metadata_store import MetadataStore
 
 class ContextualRAGOrchestrator:
     def __init__(self, config_path: str):
@@ -46,30 +34,20 @@ class ContextualRAGOrchestrator:
         # Initialize components
         self.incremental_processor = IncrementalProcessor(self.config)
         
-        # Initialize storage (with fallbacks)
-        self.vector_store = None
-        self.metadata_store = None
-        
-        if ContextualVectorStore:
-            self.vector_store = ContextualVectorStore(self.config)
-        
-        if MetadataStore:
-            self.metadata_store = MetadataStore(self.config)
+        # Initialize storage
+        self.vector_store = ContextualVectorStore(self.config)
+        self.metadata_store = MetadataStore(self.config)
         
         # Initialize agents
         self._init_agents()
         
         # AutoGen configuration
-        try:
-            self.user_proxy = autogen.UserProxyAgent(
-                name="orchestrator",
-                system_message="Pipeline orchestrator managing document processing.",
-                human_input_mode="NEVER",
-                max_consecutive_auto_reply=0
-            )
-        except Exception as e:
-            self.logger.warning(f"AutoGen UserProxy initialization failed: {e}")
-            self.user_proxy = None
+        self.user_proxy = autogen.UserProxyAgent(
+            name="orchestrator",
+            system_message="Pipeline orchestrator managing document processing.",
+            human_input_mode="NEVER",
+            max_consecutive_auto_reply=0
+        )
     
     def _get_default_config(self) -> Dict:
         """Standard-Konfiguration falls keine Datei vorhanden"""
@@ -93,41 +71,31 @@ class ContextualRAGOrchestrator:
     
     def _init_agents(self):
         """Initialisiere alle Agenten"""
-        # Initialize available agents
-        self.agents = {}
+        # Initialize all agents
+        self.agents = {
+            'pdf_extractor': PDFExtractorAgent(self.config),
+            'context_enricher': ContextEnricherAgent(self.config),
+            'metadata_extractor': MetadataExtractorAgent(self.config),
+            'chunk_creator': ChunkCreatorAgent(self.config),
+            'quality_validator': QualityValidatorAgent(self.config)
+        }
         
-        if PDFExtractorAgent:
-            self.agents['pdf_extractor'] = PDFExtractorAgent(self.config)
+        # Create AutoGen agent group
+        autogen_agents = [agent.agent for agent in self.agents.values() if hasattr(agent, 'agent')]
         
-        if ContextEnricherAgent:
-            self.agents['context_enricher'] = ContextEnricherAgent(self.config)
-        
-        if MetadataExtractorAgent:
-            self.agents['metadata_extractor'] = MetadataExtractorAgent(self.config)
-        
-        if ChunkCreatorAgent:
-            self.agents['chunk_creator'] = ChunkCreatorAgent(self.config)
-        
-        if QualityValidatorAgent:
-            self.agents['quality_validator'] = QualityValidatorAgent(self.config)
-        
-        # Create agent group if we have AutoGen agents
-        if self.agents:
-            autogen_agents = [agent.agent for agent in self.agents.values() if hasattr(agent, 'agent')]
+        if autogen_agents and self.user_proxy:
+            autogen_agents.append(self.user_proxy)
             
-            if autogen_agents and self.user_proxy:
-                autogen_agents.append(self.user_proxy)
-                
-                self.groupchat = autogen.GroupChat(
-                    agents=autogen_agents,
-                    messages=[],
-                    max_round=10
-                )
-                
-                self.manager = autogen.GroupChatManager(
-                    groupchat=self.groupchat,
-                    llm_config={"temperature": 0}
-                )
+            self.groupchat = autogen.GroupChat(
+                agents=autogen_agents,
+                messages=[],
+                max_round=10
+            )
+            
+            self.manager = autogen.GroupChatManager(
+                groupchat=self.groupchat,
+                llm_config={"temperature": 0}
+            )
     
     def process_documents(self, 
                          input_dir: str, 
@@ -205,19 +173,13 @@ class ContextualRAGOrchestrator:
         doc_id = f"doc_{file_path.stem}_{int(time.time())}"
         
         try:
-            # Step 1: Extract PDF (with fallback)
+            # Step 1: Extract PDF
             self.logger.info(f"Extracting PDF: {file_path.name}")
-            if 'pdf_extractor' in self.agents:
-                extraction_result = self.agents['pdf_extractor'].process_pdf(file_path)
-            else:
-                extraction_result = self._fallback_pdf_extraction(file_path)
+            extraction_result = self.agents['pdf_extractor'].process_pdf(file_path)
             
-            # Step 2: Extract metadata (with fallback)
+            # Step 2: Extract metadata
             self.logger.info(f"Extracting metadata: {file_path.name}")
-            if 'metadata_extractor' in self.agents:
-                metadata = self.agents['metadata_extractor'].extract_metadata(extraction_result)
-            else:
-                metadata = self._fallback_metadata_extraction(file_path, extraction_result)
+            metadata = self.agents['metadata_extractor'].extract_metadata(extraction_result)
             
             # Prepare document data
             document_data = {
@@ -229,35 +191,26 @@ class ContextualRAGOrchestrator:
                 **metadata
             }
             
-            # Step 3: Create initial chunks (with fallback)
+            # Step 3: Create initial chunks
             self.logger.info(f"Creating chunks: {file_path.name}")
-            if 'chunk_creator' in self.agents:
-                initial_chunks = self.agents['chunk_creator'].create_chunks(
-                    extraction_result.get('pages', []),
-                    document_data
-                )
-            else:
-                initial_chunks = self._fallback_chunk_creation(extraction_result, document_data)
+            initial_chunks = self.agents['chunk_creator'].create_chunks(
+                extraction_result.get('pages', []),
+                document_data
+            )
             
             # Step 4: Enrich chunks with context
             self.logger.info(f"Enriching chunks with context: {file_path.name}")
-            if 'context_enricher' in self.agents:
-                contextual_chunks = self.agents['context_enricher'].enrich_chunks(
-                    initial_chunks,
-                    document_data
-                )
-            else:
-                contextual_chunks = self._fallback_context_enrichment(initial_chunks, document_data)
+            contextual_chunks = self.agents['context_enricher'].enrich_chunks(
+                initial_chunks,
+                document_data
+            )
             
-            # Step 5: Validate quality (with fallback)
+            # Step 5: Validate quality
             self.logger.info(f"Validating quality: {file_path.name}")
-            if 'quality_validator' in self.agents:
-                quality_report = self.agents['quality_validator'].validate_chunks(
-                    contextual_chunks,
-                    document_data
-                )
-            else:
-                quality_report = self._fallback_quality_validation(contextual_chunks)
+            quality_report = self.agents['quality_validator'].validate_chunks(
+                contextual_chunks,
+                document_data
+            )
             
             min_quality_score = self.config.get('quality_validation', {}).get('min_quality_score', 50)
             if quality_report['overall_score'] < min_quality_score:
@@ -309,110 +262,6 @@ class ContextualRAGOrchestrator:
                 'status': 'failed'
             }
     
-    def _fallback_pdf_extraction(self, file_path: Path) -> Dict:
-        """Fallback PDF-Extraktion ohne speziellen Agent"""
-        # Einfache Fallback-Implementierung
-        return {
-            'pages': [{'content': f'Content from {file_path.name}', 'page_number': 1}],
-            'total_pages': 1,
-            'extraction_method': 'fallback'
-        }
-    
-    def _fallback_metadata_extraction(self, file_path: Path, extraction_result: Dict) -> Dict:
-        """Fallback Metadaten-Extraktion"""
-        return {
-            'title': file_path.stem,
-            'doc_type': 'pdf',
-            'creation_date': datetime.now(),
-            'authors': [],
-            'tags': []
-        }
-    
-    def _fallback_chunk_creation(self, extraction_result: Dict, document_data: Dict) -> List[Dict]:
-        """Fallback Chunk-Erstellung"""
-        chunks = []
-        for i, page in enumerate(extraction_result.get('pages', [])):
-            chunk = {
-                'chunk_id': f"chunk_{document_data['doc_id']}_{i}",
-                'content': page.get('content', ''),
-                'page_numbers': [page.get('page_number', i + 1)],
-                'token_count': len(page.get('content', '').split()),
-                'extraction_method': 'fallback'
-            }
-            chunks.append(chunk)
-        return chunks
-    
-    def _fallback_context_enrichment(self, initial_chunks: List[Dict], document_data: Dict) -> List[ContextualChunk]:
-        """Fallback Kontext-Anreicherung"""
-        from models.contextual_chunk import (
-            ContextualChunk, DocumentContext, HierarchicalContext,
-            NavigationalContext, ContentContext, ChunkType, SemanticRole
-        )
-        
-        contextual_chunks = []
-        
-        # Erstelle einfachen Document Context
-        doc_context = DocumentContext(
-            document_id=document_data['doc_id'],
-            document_title=document_data.get('title', 'Untitled'),
-            document_type=document_data.get('doc_type', 'unknown'),
-            total_pages=document_data.get('total_pages', 0),
-            total_chunks=len(initial_chunks),
-            authors=document_data.get('authors', []),
-            tags=document_data.get('tags', [])
-        )
-        
-        for i, chunk in enumerate(initial_chunks):
-            # Einfache Kontext-Strukturen
-            hier_context = HierarchicalContext()
-            nav_context = NavigationalContext()
-            
-            if i > 0:
-                nav_context.previous_chunk_id = initial_chunks[i-1]['chunk_id']
-            if i < len(initial_chunks) - 1:
-                nav_context.next_chunk_id = initial_chunks[i+1]['chunk_id']
-            
-            content_context = ContentContext(
-                chunk_type=ChunkType.UNKNOWN,
-                semantic_role=SemanticRole.MAIN_CONTENT,
-                key_concepts=[],
-                prerequisites=[]
-            )
-            
-            contextual_chunk = ContextualChunk(
-                chunk_id=chunk['chunk_id'],
-                content=chunk['content'],
-                token_count=chunk.get('token_count', 0),
-                char_count=len(chunk['content']),
-                page_numbers=chunk.get('page_numbers', []),
-                position_in_document=i / len(initial_chunks),
-                document_context=doc_context,
-                hierarchical_context=hier_context,
-                navigational_context=nav_context,
-                content_context=content_context,
-                extraction_confidence=0.8,
-                completeness_score=0.8,
-                extraction_method='fallback',
-                processed_at=datetime.now(),
-                processing_version='1.0.0'
-            )
-            
-            contextual_chunks.append(contextual_chunk)
-        
-        return contextual_chunks
-    
-    def _fallback_quality_validation(self, contextual_chunks: List[ContextualChunk]) -> Dict:
-        """Fallback Qualitätsvalidierung"""
-        scores = []
-        for chunk in contextual_chunks:
-            score = 80 if len(chunk.content) > 100 else 60
-            scores.append(score)
-        
-        return {
-            'overall_score': sum(scores) / len(scores) if scores else 70,
-            'chunk_scores': scores,
-            'validation_method': 'fallback'
-        }
     
     def _generate_empty_report(self) -> Dict:
         """Generiere leeren Bericht wenn keine Dateien verarbeitet wurden"""

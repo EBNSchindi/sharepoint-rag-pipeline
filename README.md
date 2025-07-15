@@ -60,9 +60,11 @@ python run_pipeline.py /path/to/pdfs --dry-run
 **✅ Erfolgreich getestet** mit 10-seitiger PDF (25.389 Zeichen → 4 Chunks)
 
 **Für detaillierte Anleitungen:**
-- 🚀 **[QUICKSTART.md](QUICKSTART.md)** - 5-Minuten Setup
-- 🐳 **[DOCKER.md](DOCKER.md)** - Container-Guide  
-- 🔧 **[INSTALLATION.md](INSTALLATION.md)** - Vollständige Installation
+- 🚀 **[QUICKSTART.md](QUICKSTART.md)** - 5-Minuten Setup (Windows/Linux/macOS)
+- 🔧 **[DOCKER_QUICK_FIX.md](DOCKER_QUICK_FIX.md)** - Schnelle Lösung für Dependency-Probleme
+- 🐳 **[DOCKER_PLATFORM_GUIDE.md](DOCKER_PLATFORM_GUIDE.md)** - Plattform-spezifische Docker-Anleitungen
+- 🔧 **[INSTALLATION.md](INSTALLATION.md)** - Native Installation ohne Docker
+- 🐳 **[DOCKER.md](DOCKER.md)** - Erweiterte Docker-Konfiguration
 
 ## 📁 Projektstruktur
 
@@ -71,8 +73,10 @@ sharepoint-rag-pipeline/
 ├── 🐳 Docker Files
 │   ├── Dockerfile              # Multi-stage Container
 │   ├── docker-compose.yml      # Services & Orchestrierung
+│   ├── docker-compose.override.yml.example # Plattform-spezifische Anpassungen
 │   ├── .env.example           # Environment Template
-│   └── Makefile               # Vereinfachte Commands
+│   ├── Makefile               # Vereinfachte Commands + Plattform-Tools
+│   └── docker/                # Docker-spezifische Configs
 ├── 🏗️ Source Code
 │   ├── src/agents/            # AutoGen Agenten
 │   ├── src/pipeline/          # Pipeline-Orchestrierung
@@ -90,9 +94,11 @@ sharepoint-rag-pipeline/
 │   └── test_pipeline.py       # Test & Validierung
 └── 📚 Documentation
     ├── README.md              # Diese Datei
-    ├── QUICKSTART.md          # 5-Min Setup
-    ├── DOCKER.md              # Container-Guide
-    └── INSTALLATION.md        # Vollständige Installation
+    ├── QUICKSTART.md          # 5-Min Setup (Windows/Linux/macOS)
+    ├── DOCKER_PLATFORM_GUIDE.md # Plattform-spezifische Docker-Anleitungen
+    ├── DOCKER.md              # Erweiterte Container-Konfiguration
+    ├── INSTALLATION.md        # Native Installation
+    └── TROUBLESHOOTING.md     # Fehlerbehebung
 ```
 
 ## 🐳 Docker Workflows
@@ -110,6 +116,11 @@ make process INPUT=/path/to/pdfs
 # Monitoring
 make logs                    # Live-Logs anzeigen
 make monitor                 # Web-Dashboard starten
+
+# Plattform-spezifische Hilfe
+make setup-windows           # Windows-Setup-Anleitung
+make setup-linux            # Linux-Setup-Anleitung  
+make setup-macos             # macOS-Setup-Anleitung
 ```
 
 ### Development
